@@ -1,7 +1,12 @@
 # Simple reprsentation  of cheoma db 
-
 import chromadb
 chroma_client = chromadb.Client()
+
+# Add the project root (RAG/) to Python's path
+from pathlib import Path
+import sys
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
 
 # create a collection (collection is like a table in a database)
 collection = chroma_client.create_collection(name="test_collection")
