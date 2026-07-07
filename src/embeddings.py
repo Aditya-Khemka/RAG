@@ -7,6 +7,7 @@ load_dotenv()
 
 
 def get_embedding_model():
+    print("Loading embedding model...")
     return AzureOpenAIEmbeddings(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -27,4 +28,4 @@ if __name__ == "__main__":
     embedding = embed_text(text)
 
     print(f"Embedding dimension: {len(embedding)}")
-    print(embedding[:10])
+    print(embedding[:10])  

@@ -62,3 +62,8 @@ credentials.json
 
 # TensorBoard
 runs/
+
+# db
+/chroma_db
+*/chroma_db/*
+*.bin
