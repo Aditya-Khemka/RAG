@@ -1,17 +1,16 @@
 from pathlib import Path
 from dotenv import load_dotenv
+
+# import is unreasonably slow, but we need it for the PyPDFLoader
 from langchain_community.document_loaders import PyPDFLoader
 
 load_dotenv()
 
 
 def load_pdf():
-
     # Locate the project root (RAG/)
     project_root = Path(__file__).resolve().parent.parent
-
     pdf_path = project_root / "data" / "sample.pdf"
-
     print(f"Looking for PDF at:\n{pdf_path}\n")
 
     if not pdf_path.exists():
