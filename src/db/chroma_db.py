@@ -1,39 +1,42 @@
-# Simple reprsentation  of cheoma db 
+"""Standalone Chroma example.
+
+This file is a small low-level example of using Chroma directly.
+It is not part of the main RAG pipeline and is kept here as a reference.
+"""
+
+# Create a local Chroma client.
 import chromadb
+
 chroma_client = chromadb.Client()
 
-# Add the project root (RAG/) to Python's path
+# Add the project root (RAG/) to Python's path.
 from pathlib import Path
 import sys
+
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-# create a collection (collection is like a table in a database)
+# Create a collection, which acts like a table in a traditional database.
 collection = chroma_client.create_collection(name="test_collection")
 
-# Adding some documents to the collection
+# Add a few example documents to the collection.
 documents = [
     {"id": "doc1", "content": "Hello World"},
     {"id": "doc2", "content": "This is the second document."},
-    {"id": "doc3", "content": "This is the third document."}
+    {"id": "doc3", "content": "This is the third document."},
 ]
 
 for doc in documents:
     collection.upsert(
-        ids = [doc["id"]],
-        documents = [doc["content"]]
+        ids=[doc["id"]],
+        documents=[doc["content"]],
     )
-# the syntax for upsert is collection.upsert(ids=[...], documents=[...])
 
-
-# Now you can query the collection
-
+# Query the collection for the most similar documents.
 query = "Hello World"
-
-# Query the collection for the most similar documents to the query
 results = collection.query(
     query_texts=[query],
-    n_results=2
+    n_results=2,
 )
-# The syntax for query is collection.query(query_texts=[...], n_results=...)
+
 print(results)

@@ -1,77 +1,77 @@
-from pathlib import Path
+"""Helpers for creating, loading, and querying a Chroma vector store."""
 
 from langchain_chroma import Chroma
-from langchain_core.documents import Document
-
 from src.embeddings import get_embedding_model
 
-# Database will be stored here:
-DB_DIR = Path(__file__).resolve().parent.parent.parent / "chroma_db"
 
+def create_vector_store(
+    documents,
+    persist_directory=None,
+):
+    """Create a Chroma vector store from a list of documents."""
 
-# Create a vector DB 
-def create_vector_store(documents: list[Document]) -> Chroma:
-    # Create and persist a Chroma vector database.
-
-    print("Loading embedding model...")
+    # Build the embedding model once and use it for all chunks.
     embedding_model = get_embedding_model()
 
-    print("Creating Chroma vector store...")
-
-    vector_store = Chroma.from_documents(
+    # Store the documents in Chroma and persist them to disk if requested.
+    vectorstore = Chroma.from_documents(
         documents=documents,
         embedding=embedding_model,
-        persist_directory=str(DB_DIR), #persist = save on disc 
+        persist_directory=persist_directory,
     )
 
-    print(f"Database created successfully.")
-    print(f"Stored {vector_store._collection.count()} documents.")
-    print(f"Location: {DB_DIR}")
-
-    return vector_store
+    return vectorstore
 
 
-
-# Retreiving a vector DB 
-def load_vector_store() -> Chroma:
-    # Load an existing Chroma database.
-
-    print("Loading existing Chroma database...")
+def load_vector_store(
+    persist_directory,
+):
+    """Load an existing Chroma vector store from disk."""
 
     embedding_model = get_embedding_model()
 
-    vector_store = Chroma(
-        persist_directory=str(DB_DIR),
+    return Chroma(
+        persist_directory=persist_directory,
         embedding_function=embedding_model,
     )
 
-    print(f"Loaded {vector_store._collection.count()} documents.")
 
-    return vector_store
+def similarity_search(
+    vectorstore,
+    query,
+    k=3,
+):
+    """Return the top-k documents most similar to a query."""
 
-
-
-
-def similarity_search(query: str, k: int = 3) -> list[Document]:
-    # Perform semantic similarity search on the vector store.
-
-    vector_store = load_vector_store()
-    print(f"\nSearching for: '{query}'\n")
-    results = vector_store.similarity_search(
-        query=query,
+    return vectorstore.similarity_search(
+        query,
         k=k,
     )
 
-    return results
 
+def similarity_search_with_scores(
+    vectorstore,
+    query,
+    k=3,
+):
+    """Return similar documents together with their distance score."""
 
-def similarity_search_with_scores(query: str, k: int = 3):
-    # Perform semantic similarity search and return the distance score.
-
-    vector_store = load_vector_store()
-    results = vector_store.similarity_search_with_score(
-        query=query,
+    return vectorstore.similarity_search_with_score(
+        query,
         k=k,
     )
 
-    return results
+
+def metadata_search(
+    vectorstore,
+    query,
+    filter_criteria,
+    k=3,
+):
+    """Return similar documents while applying a metadata filter."""
+
+    return vectorstore.similarity_search(
+        query,
+        k=k,
+        filter=filter_criteria,
+    )

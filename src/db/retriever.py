@@ -1,27 +1,29 @@
-from langchain_core.documents import Document
-
-from src.db.chroma_store import load_vector_store
+"""Retriever helpers for the Chroma-backed RAG workflow."""
 
 
-# Rectriever = vector store + search method (similarity, mmr, etc)
 def get_retriever(
-    search_type: str = "similarity",
-    k: int = 2,
+    vectorstore,
+    k=3,
 ):
-    # Returns a configured Chroma retriever.
+    """Create a similarity-based retriever for the given vector store."""
 
-    vector_store = load_vector_store()
-
-    retriever = vector_store.as_retriever(
-        search_type=search_type,
+    return vectorstore.as_retriever(
+        search_type="similarity",
         search_kwargs={"k": k},
     )
 
-    return retriever
 
+def get_mmr_retriever(
+    vectorstore,
+    k=3,
+    fetch_k=5,
+):
+    """Create a maximum-marginal-relevance retriever."""
 
-def retrieve_documents(query: str, k: int = 2) -> list[Document]:
-    # Retrieve the most relevant documents.
-
-    retriever = get_retriever(k=k)
-    return retriever.invoke(query)
+    return vectorstore.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": k,
+            "fetch_k": fetch_k,
+        },
+    )

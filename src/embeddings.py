@@ -1,13 +1,24 @@
+"""Embedding helpers for the RAG pipeline.
+
+This module wraps the Azure embedding client so the rest of the project can
+create embeddings without repeating the Azure configuration each time.
+"""
+
 import os
 
 from dotenv import load_dotenv
 from langchain_openai import AzureOpenAIEmbeddings
 
+# Load environment variables from the local .env file.
 load_dotenv()
 
 
 def get_embedding_model():
+    """Create and return the Azure embedding model client."""
+
     print("Loading embedding model...")
+
+    # Build the Azure OpenAI embeddings client using environment variables.
     return AzureOpenAIEmbeddings(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -17,6 +28,8 @@ def get_embedding_model():
 
 
 def embed_text(text: str):
+    """Convert a single text string into an embedding vector."""
+
     embedding_model = get_embedding_model()
     embedding = embedding_model.embed_query(text)
 
@@ -28,4 +41,4 @@ if __name__ == "__main__":
     embedding = embed_text(text)
 
     print(f"Embedding dimension: {len(embedding)}")
-    print(embedding[:10])  
+    print(embedding[:10])
