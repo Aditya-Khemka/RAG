@@ -16,7 +16,7 @@ load_dotenv()
 def get_embedding_model():
     """Create and return the Azure embedding model client."""
 
-    print("Loading embedding model...")
+    print("[embeddings / get_embedding_model] Loading embedding model from Azure OpenAI...")
 
     # Build the Azure OpenAI embeddings client using environment variables.
     return AzureOpenAIEmbeddings(
@@ -27,9 +27,11 @@ def get_embedding_model():
     )
 
 
+
 def embed_text(text: str):
     """Convert a single text string into an embedding vector."""
 
+    print(f"[embeddings / embed_text] Creating embedding for text: {text}")
     embedding_model = get_embedding_model()
     embedding = embedding_model.embed_query(text)
 
@@ -40,5 +42,5 @@ if __name__ == "__main__":
     text = "LangChain makes building RAG applications easier."
     embedding = embed_text(text)
 
-    print(f"Embedding dimension: {len(embedding)}")
+    print(f"[embeddings / __main__] Embedding dimension: {len(embedding)}")
     print(embedding[:10])
