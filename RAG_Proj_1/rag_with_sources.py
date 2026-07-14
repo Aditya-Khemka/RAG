@@ -4,23 +4,25 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
 
 from src.chat_model import *
-from src.text_splitter import *
 from src.db.chroma_store import *
 from src.db.retriever import *
+from src.schemas import *
 
 
 
 def format_docs(docs):
+    """
+    Convert retrieved Document objects into a plain text
+    context string that can be inserted into the prompt.
+    """
 
     formatted = []
 
     for doc in docs:
-        source = doc.metadata.get(
-            "source",
-            "unknown",
-        )
+        source = doc.metadata.get("source","unknown")
 
         formatted.append(
             f"""
@@ -34,67 +36,87 @@ SOURCE: {source}
 
 
 
-def ask_question(question):
+def ask_question(question: str) -> RAGResponse:
+    """
+    Ask a question against the vector database.
 
-    vectorstore = load_vector_store(
-        "./chroma_db"
-    )
+    Returns:
+        RAGResponse
+    """
 
+    # Load existing Chroma database.
+
+    vectorstore = load_vector_store("./chroma_db")
+
+    # Create retriever.
     retriever = get_mmr_retriever(
         vectorstore,
         k=4,
         fetch_k=10,
     )
 
-    docs = retriever.invoke(question)
-
-    print("\nRetrieved Documents:\n")
-
-    for i, doc in enumerate(docs, start=1):
-        print(f"----- Document {i} -----")
-        print(doc.page_content)
-        print("Metadata:", doc.metadata)
-        print()
-
-    context = format_docs(docs)
 
     prompt = ChatPromptTemplate.from_template(
         """
-Answer the question using ONLY the context below.
+You are a helpful assistant.
 
-If the answer is not present,
-say:
+Answer the question using ONLY the provided context.
+
+If the answer cannot be found in the context, say:
 
 "I don't have that information in my knowledge base."
 
-At the end include:
+Provide:
 
-Sources Used:
-<list>
+1. answer
+2. confidence (0 to 1)
+3. sources_used
+4. follow_up
 
 Context:
 {context}
 
 Question:
 {question}
-
-Answer:
 """
     )
 
-    messages = prompt.invoke(
+    # -------------------------------------------------
+    # Structured LLM
+    # Output will automatically become a RAGResponse
+    # object instead of plain text.
+    # -------------------------------------------------
+    structured_llm = get_structured_chat_model()
+
+    # -------------------------------------------------
+    # LCEL RAG Chain
+    #
+    # Input Question
+    #        │
+    #        ├──> Retriever
+    #        │         │
+    #        │         ▼
+    #        │   Retrieved Docs
+    #        │         │
+    #        │         ▼
+    #        │    format_docs
+    #        │
+    #        └──> Original Question
+    #
+    # Both are passed into the prompt.
+    # -------------------------------------------------
+    rag_chain = (
         {
-            "context": context,
-            "question": question,
+            "context": retriever | format_docs,
+            "question": RunnablePassthrough(),
         }
+        | prompt
+        | structured_llm
     )
 
-    llm = get_chat_model()
+    result = rag_chain.invoke(question)
 
-    response = llm.invoke(messages)
-
-    return response.content
-
+    return result
 
 
 if __name__ == "__main__":
@@ -106,15 +128,27 @@ if __name__ == "__main__":
         "How much does LangChain cost?",
         "Who created LangChain?",
         "Who created OpenAI?",
-        "Who Created LangVicta?",
+        "Who created LangVicta?",
     ]
 
-    for q in questions:
+    for question in questions:
 
         print("=" * 80)
-        print(f"QUESTION: {q}")
+        print(f"QUESTION:\n{question}")
 
-        answer = ask_question(q)
+        result = ask_question(question)
 
-        print("\nFINAL ANSWER:")
-        print(answer)
+        print("\nANSWER:")
+        print(result.answer)
+
+        print("\nCONFIDENCE:")
+        print(result.confidence)
+
+        print("\nSOURCES:")
+        print(result.sources_used)
+
+        print("\nFOLLOW-UP:")
+        print(result.follow_up)
+
+        print("=" * 80)
+        print()
