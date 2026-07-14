@@ -1,6 +1,78 @@
 """Helpers for splitting long documents into smaller chunks."""
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import *
+from langchain_core.documents import Document
+
+
+SAMPLE_TEXT = """# Introduction to Machine Learning
+
+Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.
+
+## Types of Machine Learning
+
+### Supervised Learning
+Supervised learning uses labeled data to train models. The algorithm learns to map inputs to outputs based on example input-output pairs.
+
+Common algorithms include:
+- Linear Regression
+- Decision Trees
+- Neural Networks
+
+### Unsupervised Learning
+Unsupervised learning finds hidden patterns in unlabeled data. The algorithm discovers structure without predefined labels.
+
+Common algorithms include:
+- K-Means Clustering
+- Principal Component Analysis
+- Autoencoders
+
+## Applications
+
+Machine learning is used in many fields:
+1. Image recognition
+2. Natural language processing
+3. Recommendation systems
+4. Fraud detection
+5. Autonomous vehicles
+"""
+
+
+SAMPLE_CODE = '''
+def quicksort(arr):
+    """
+    Quicksort implementation in Python.
+    Time complexity: O(n log n) average, O(n²) worst case.
+    """
+    if len(arr) <= 1:
+        return arr
+
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+
+    return quicksort(left) + middle + quicksort(right)
+
+
+def binary_search(arr, target):
+    """
+    Binary search implementation.
+    Requires sorted array.
+    Time complexity: O(log n)
+    """
+    left, right = 0, len(arr) - 1
+
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return -1
+'''
 
 
 def split_documents(
@@ -22,3 +94,57 @@ def split_documents(
     print(f"Created {len(split_docs)} chunks.")
 
     return split_docs
+
+
+
+def recursive_splitter() : 
+
+    # Configure the text splitter with a fixed chunk size and overlap.
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50,
+        separators=["\n\n", "\n", " ", ""],
+    )
+
+    chunks = splitter.split_text(SAMPLE_TEXT)
+
+    print(f"Original length: {len(SAMPLE_TEXT)} chars")
+    print(f"Number of chunks: {len(chunks)}")
+    print(f"Chunk sizes: {[len(c) for c in chunks]}")
+    print(f"\nFirst chunk preview:\n{chunks[0][:200]}...")
+
+
+def markdown_splitter():
+    # Configure the MarkdownHeaderTextSplitter to split on headers.
+    headers_to_consider = [
+        ("#", "h1"),
+        ("##", "h2"),
+        ("###", "h3"),
+    ]
+    splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_consider)
+    chunks = splitter.split_text(SAMPLE_TEXT)
+
+    print(f"Markdown Splitter produced {len(chunks)} chunks.")
+    for i, chunk in enumerate(chunks):
+        print(f"--- Chunk {i} ---")
+        print(f" Metadata: {chunk.metadata}\n")
+        print(f" Content: {chunk.page_content[:200]}...\n")
+
+
+def code_splitter():
+    python_splitter = RecursiveCharacterTextSplitter.from_language(
+        language=Language.PYTHON, chunk_size=500, chunk_overlap=50
+    )
+    chunks = python_splitter.split_text(SAMPLE_CODE)
+    print(f"Code Splitter produced {len(chunks)} chunks.")
+    for i, chunk in enumerate(chunks):
+        print(f"\nChunk {i} ({len(chunk)} chars):")
+        print(chunk[:150] + "..." if len(chunk) > 150 else chunk)
+
+
+
+if __name__ == "__main__":
+
+    # recursive_splitter() #Text_Splitter is one of the simplest ways of chunking 
+    # markdown_splitter() #mdsplitter is a more advanced way of chunking text based on headers
+    code_splitter() #code_splitter is used for splitting code snippets. It works for 1 programming language at a time. 
