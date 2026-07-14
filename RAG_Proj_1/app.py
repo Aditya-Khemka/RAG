@@ -16,6 +16,7 @@ Final Answer
 
 from pathlib import Path
 import sys
+
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -28,14 +29,11 @@ from src.db.chroma_store import *
 
 
 # Dummy knowledge base.
-KNOWLEDGE_BASE = """
+LANGCHAIN_KB = """
 # LangChain Framework
-
 LangChain is a framework for developing applications powered by language models.
-It was created by Harrison Chase in October 2022.
 
 ## Core Components
-
 1. Models
 2. Prompts
 3. Chains
@@ -43,14 +41,27 @@ It was created by Harrison Chase in October 2022.
 5. Memory
 
 ## LangGraph
-
 LangGraph is a library for building stateful, multi-actor applications.
 
 ## Pricing
-
 LangChain is open source and free.
-LangSmith has paid plans starting at $39/month while LangGraph is free for now. 
-LangVicta is a new product that is currently being offered to a select few for a cost of $200/month.
+LangSmith has paid plans starting at $39/month.
+"""
+
+LANGVICTA_KB = """
+# LangVicta Platform
+LangVicta is an enterprise AI platform for document intelligence and workflow automation.
+
+## Features
+1. Document Search
+2. RAG Pipelines
+3. Multi-agent Workflows
+4. Analytics Dashboard
+
+## Pricing
+Starter Plan: $50/month
+Professional Plan: $200/month
+Enterprise Plan: Contact Sales
 """
 
 
@@ -58,16 +69,24 @@ LangVicta is a new product that is currently being offered to a select few for a
 def create_kb():
 
     # Create a Document object from the knowledge base text.
-    doc = Document(
-        page_content=KNOWLEDGE_BASE,
-        metadata={
-            "source": "langchain_docs"
-        },
-    )
+    docs = [
+        Document(
+            page_content=LANGCHAIN_KB,
+            metadata={
+                "source": "langchain_docs"
+            },
+        ),
+        Document(
+            page_content=LANGVICTA_KB,
+            metadata={
+                "source": "langvicta_docs"
+            },
+        ),
+    ]
 
-    # Split the document into smaller chunks 
+    # Split the document into smaller chunks
     chunks = split_documents(
-        [doc],
+        docs,
         chunk_size=250,
         chunk_overlap=30,
     )
@@ -91,49 +110,54 @@ def create_kb():
 # They need plain text.
 # --------------------------------------------------
 def format_docs(docs):
-    return "\n\n".join(
-        doc.page_content
-        for doc in docs
-    )
+
+    formatted = []
+
+    for doc in docs:
+        source = doc.metadata.get("source", "unknown")
+
+        formatted.append(
+            f"""
+SOURCE: {source}
+
+{doc.page_content}
+"""
+        )
+
+    return "\n\n".join(formatted)
 
 
 # Main RAG function.
 def ask_question(question):
 
-    print(f"QUESTION:\n{question}")
-    print("=" * 80)
-
     # Step 1: Create the vector database.
     vector_store = create_kb()
 
     # Step 2: Create a retriever.
-    #
-    # search_type="similarity"
-    # means:
-    # "Find chunks whose embeddings are closest to the embedding of the question."
     retriever = vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={"k": 2},
     )
 
-
     # Step 3: Retrieve relevant chunks.
     docs = retriever.invoke(question)
 
-    print("\nRetrieved Documents:\n")
+    # Step 3.1 : Extract all unique sources used by the retriever.
+    sources = sorted(
+        {
+            doc.metadata.get("source", "unknown")
+            for doc in docs
+        }
+    )
 
     for i, doc in enumerate(docs, start=1):
         print(f"----- Document {i} -----")
         print(doc.page_content)
+        print("Metadata:", doc.metadata)
         print()
 
     # Step 4: Convert retrieved docs into plain text.
     context = format_docs(docs)
-
-    print("=" * 80)
-    print(f"CONTEXT SENT TO THE LLM: \n {context}")
-    print("=" * 80)
-    print()
 
     # --------------------------------------------------
     # Step 5: Build the prompt.
@@ -147,6 +171,13 @@ def ask_question(question):
     prompt = ChatPromptTemplate.from_template(
         """
 Answer the question using ONLY the context below.
+
+At the end, mention which sources were used.
+
+If the answer cannot be found in the context,
+say:
+
+"I don't have that information in my knowledge base."
 
 Context:
 {context}
@@ -166,19 +197,17 @@ Answer:
         }
     )
 
-    print("=" * 80)
-    print("FINAL PROMPT:")
-    print("=" * 80)
-    print(messages)
-    print()
-
     # Step 6: Prepare the LLM.
     llm = get_chat_model()
 
     # Step 7: Send the prompt to the LLM.
     response = llm.invoke(messages)
 
-    return response.content
+    # Step 8: Return both answer and sources.
+    return {
+        "answer": response.content,
+        "sources": sources,
+    }
 
 
 # --------------------------------------------------
@@ -186,11 +215,25 @@ Answer:
 # --------------------------------------------------
 if __name__ == "__main__":
 
-    question = "How much does LangVicta cost per month? Who is the creator of LangVicta?"
+    questions = [
+        "How much does LangVicta cost per month?",
+        "Who founded LangVicta?",
+        "What is LangGraph?",
+        "Who created OpenAI?",
+        "How much does LangChain cost per month? Who created LangChain?",
+    ]
 
-    answer = ask_question(question)
+    for question in questions:
+        print("=" * 80)
+        print(f"QUESTION: {question}")
 
-    print("=" * 80)
-    print("FINAL ANSWER:")
-    print("=" * 80)
-    print(answer)
+        result = ask_question(question)
+
+        print()
+        print("FINAL ANSWER:")
+        print(result["answer"])
+
+        print()
+        print("SOURCES:")
+        print(result["sources"])
+        print("=" * 80)
