@@ -5,6 +5,12 @@ It is not part of the main RAG pipeline and is kept here as a reference.
 This uses the default embedding model
 """
 
+# Add the project root (RAG/) to Python's path.
+from pathlib import Path
+import sys
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
 # Create a local Chroma client.
 import chromadb
 
@@ -13,12 +19,6 @@ chroma_client = chromadb.PersistentClient()
 
 # Persist the Chroma database to disk in the "chroma_db" directory.
 chroma_client.persist_directory = "chroma_db"
-
-# Add the project root (RAG/) to Python's path.
-from pathlib import Path
-import sys
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
 
 
 '''
