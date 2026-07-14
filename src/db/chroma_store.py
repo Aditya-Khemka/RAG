@@ -26,7 +26,7 @@ def create_vector_store(
 def load_vector_store(
     persist_directory,
 ):
-    """Load an existing Chroma vector store from disk."""
+    """Load an existing Chroma vector store (python object of the db) from disk."""
 
     embedding_model = get_embedding_model()
 
