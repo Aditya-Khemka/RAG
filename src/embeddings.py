@@ -8,11 +8,12 @@ import os
 
 from dotenv import load_dotenv
 from langchain_openai import AzureOpenAIEmbeddings
+from langsmith import traceable
 
 # Load environment variables from the local .env file.
 load_dotenv()
 
-
+@traceable(name="get_embedding_model")
 def get_embedding_model():
     """Create and return the Azure embedding model client."""
 
@@ -27,7 +28,7 @@ def get_embedding_model():
     )
 
 
-
+@traceable(name="embed_text")
 def embed_text(text: str):
     """Convert a single text string into an embedding vector."""
 
